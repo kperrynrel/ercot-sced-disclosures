@@ -6,25 +6,27 @@ and build a master dataframe of all of the data.
 import zipfile,fnmatch,os
 import glob
 import pandas as pd
+import os
 
 if __name__ == "__main__":
-    # rootPath = r"C:/Users/kperry/Documents/ercot_15_min_data/"
-    # # Unzip all of the SCED folders
-    # pattern = '*.zip'
-    # zip_files = glob.glob(r"C:/Users/kperry/Documents/ercot_15_min_data/*.zip")
-    # for zip_file in zip_files:
-    #     with zipfile.ZipFile(zip_file, 'r') as zip_ref:
-    #         zip_ref.extractall(rootPath + "/" +  
-    #                            os.path.basename(zip_file).replace(".zip", ""))
-    #     files = glob.glob(rootPath + "/" +  os.path.basename(zip_file).replace(".zip", "")+ 
-    #                       "/*")
-    #     for file in files:
-    #         if "SMNE" not in file:
-    #             os.remove(file)
-    #     # Move the file to S3 and then delete it
+    rootPath = r"./ercot_15_min_data"
+    downloadPath = r"./Downloads"
+    # Unzip all of the SCED folders
+    pattern = '*.zip'
+    zip_files = glob.glob(os.path.join(downloadPath, "*.zip"))
+    for zip_file in zip_files:
+        with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+            zip_ref.extractall(rootPath + "/" +  
+                                os.path.basename(zip_file).replace(".zip", ""))
+        files = glob.glob(rootPath + "/" +  os.path.basename(zip_file).replace(".zip", "")+ 
+                          "/*")
+        for file in files:
+            if "SMNE" not in file:
+                os.remove(file)
+        # Move the file to S3 and then delete it
         
     # Open up all of the SMNE files in the zipped folders.
-    files = glob.glob("C:/Users/kperry/Documents/ercot_15_min_data/*/*SMNE*.csv")
+    files = glob.glob(os.path.join(rootPath, "*/*SMNE*.csv"))
     master_df_list = list()
     for file in files:
         try:
@@ -47,15 +49,13 @@ if __name__ == "__main__":
     master_df['Interval Time'] = master_df['Interval Time'].str.replace('"', "")
     master_df['Interval Time'] = pd.to_datetime(master_df['Interval Time'],
                                                 format='mixed')
-    # Write to csv for future use
-    master_df.to_csv("raw_ercot_data.csv", index=False)
     # Get the names of all of the plants
     plants = list(master_df['Resource Code'].drop_duplicates())
     missing_dates_list = list()
-    already_inserted = glob.glob("C:/Users/kperry/Documents/ercot_15_min_data/plant_data/*.csv")
+    already_inserted = glob.glob(os.path.join(rootPath, "plant_data/*.csv"))
     already_inserted = [os.path.basename(x) for x in already_inserted]
     for plant in plants:
-        file_name = "C:/Users/kperry/Documents/ercot_15_min_data/plant_data/" + plant.replace("\x00", "").replace('"', "") +".csv"
+        file_name = os.path.join(rootPath, "plant_data/" + plant.replace("\x00", "").replace('"', "") +".csv")
         if os.path.basename(file_name) in already_inserted:
             print("Already processed!")
             continue
